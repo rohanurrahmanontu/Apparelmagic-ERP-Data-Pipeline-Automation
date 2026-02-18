@@ -1,0 +1,637 @@
+{
+  "name": "Shipments Table Export",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -832,
+        112
+      ],
+      "id": "45dfbdb0-f4cb-4e25-9e2d-deed497fb6ac",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "Shipments_Table Export",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        1216
+      ],
+      "id": "d0b6c6cb-9b86-45f3-a496-828fd6d9ad66",
+      "name": "Get many rows"
+    },
+    {
+      "parameters": {
+        "options": {
+          "fileName": "=shipment_table_export_{{ $now.format('yyyy-MM-dd') }}.csv"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        -48,
+        1232
+      ],
+      "id": "6141c983-ac80-4c39-9296-408d34381567",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "jsCode": "await new Promise(resolve => setTimeout(resolve, 300));\nconsole.log('---');\nreturn $input.all();"
+      },
+      "id": "de849a74-14f2-4b2d-943a-7409bb0b61c5",
+      "name": "Delay1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "last_id",
+              "name": "last_id",
+              "value": "={{ $json.last_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5c55d45e-f532-4c38-8b69-55b903e6e113",
+      "name": "Update Cursor1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        784,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "has-more",
+              "leftValue": "={{ $json.has_more }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "05fbb5af-6632-4b8c-878f-9bfcfe8e8790",
+      "name": "Has More Pages?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        560,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const currentResponse = $input.item.json;\nconst nextLastId = currentResponse.meta?.pagination?.last_id || null;\n\nconsole.log(`Retrieved ${(currentResponse.response || []).length} POs. Next: ${nextLastId || 'NONE'}`);\n\nreturn {\n  json: {\n    last_id: nextLastId,\n    has_more: !!nextLastId\n  }\n};"
+      },
+      "id": "3bc80814-8239-49e3-bfe9-607a15b58d01",
+      "name": "Check Pagination1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        336,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://jackandsage.app.apparelmagic.com/api/json/shipments/?token=xyz&time={{ Math.floor(Date.now() / 1000) }}{{ $json.last_id ? '&pagination[last_id]=' + $json.last_id : '' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "788e3bd7-6a3b-4e04-a71a-d4abd3b6b935",
+      "name": "HTTP - Fetch Page1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        112,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "page_count",
+              "name": "page_count",
+              "value": "=0",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "257c2647-2fec-42ff-86ab-538bc1fe5277",
+      "name": "Initialize Variables1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        -112,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ================================================\n// CUSTOM FLATTENING - YOUR SPECIFIC COLUMNS ONLY\n// ================================================\n\nconst apiResponse = $input.item.json;\nconst shipments = apiResponse.response || [];\n\nconst records = [];\n\nfor (const shipment of shipments) {\n  records.push({\n    // Core IDs\n    shipment_id: shipment.id,\n    invoice_id: shipment.invoice_id,\n    order_id: shipment.selected_pick_ticket_ids, // This seems to be the order ID\n    \n    // Dates\n    date: shipment.date,\n    date_internal: shipment.date_internal,\n    date_due: shipment.date_scheduled_delivery, // Date due for delivery\n    creation_date: shipment.creation_time,\n    \n    // Customer\n    customer: shipment.customer_name,\n    customer_id: shipment.customer_id,\n    \n    // Quantities & Weight\n    qty_boxes: parseInt(shipment.qty_boxes || 0),\n    qty: parseFloat(shipment.qty || 0),\n    weight: parseFloat(shipment.weight || 0),\n    \n    // Status\n    void: shipment.void === '1', // Convert to boolean\n    \n    // Tracking & User\n    tracking_number: shipment.tracking_number,\n    creation_user: shipment.creation_user_name,\n    creation_user_id: shipment.creation_user_id,\n    \n    // Warehouse\n    warehouse: shipment.warehouse_id,\n    \n    // Additional useful fields\n    ship_to: shipment.name,\n    division: shipment.division_name\n  });\n}\n\nconsole.log(`Extracted ${records.length} shipment records`);\n\nreturn records.map(record => ({ json: record }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        624
+      ],
+      "id": "fe83cee7-0d7e-44b4-81d4-dc3b34907d2e",
+      "name": "Shipment"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        208,
+        -16
+      ],
+      "id": "138f88cc-735b-4f7e-8893-514cdf7aebdf",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "tableId": "Shipments_Table_Export",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Shipment ID",
+              "fieldValue": "={{ $json.shipment_id }}"
+            },
+            {
+              "fieldId": "Invoice ID",
+              "fieldValue": "={{ $json.invoice_id }}"
+            },
+            {
+              "fieldId": "Date",
+              "fieldValue": "={{ $json.date }}"
+            },
+            {
+              "fieldId": "Customer",
+              "fieldValue": "={{ $json.ship_to }}"
+            },
+            {
+              "fieldId": "Qty Boxes",
+              "fieldValue": "={{ $json.qty_boxes }}"
+            },
+            {
+              "fieldId": "Qty",
+              "fieldValue": "={{ $json.qty }}"
+            },
+            {
+              "fieldId": "Weight",
+              "fieldValue": "={{ $json.weight }}"
+            },
+            {
+              "fieldId": "Void",
+              "fieldValue": "0"
+            },
+            {
+              "fieldId": "Order ID",
+              "fieldValue": "={{ $json.order_id }}"
+            },
+            {
+              "fieldId": "Due Date",
+              "fieldValue": "null"
+            },
+            {
+              "fieldId": "Creation User",
+              "fieldValue": "={{ $json.creation_user }}"
+            },
+            {
+              "fieldId": "Tracking Number",
+              "fieldValue": "={{ $json.tracking_number }}"
+            },
+            {
+              "fieldId": "Warehouse",
+              "fieldValue": "null"
+            },
+            {
+              "fieldId": "Creation Date",
+              "fieldValue": "={{ $json.creation_date }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        640
+      ],
+      "id": "bfeaebee-b22b-456d-917d-f4ad443c7d8f",
+      "name": "Create a row2"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "Shipments_Table_Export",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        -16
+      ],
+      "id": "31c8cd18-9473-43fc-80eb-55b0f40b5f92",
+      "name": "Get many rows1"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "Shipments_Table_Export",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "Shipment ID",
+              "condition": "fullText",
+              "searchFunction": "fts",
+              "keyValue": "={{ $json[\"Shipment ID\"] }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        0
+      ],
+      "id": "f9c54932-b92f-4ab2-935f-7a8b4d04cf03",
+      "name": "Delete a row1"
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        608,
+        0
+      ],
+      "id": "a7ede198-db97-428c-b8c0-38ec28d7c84a",
+      "name": "Wait",
+      "webhookId": "50fba6cd-a6b2-4ba1-ba3c-8e7a748bf1c5"
+    },
+    {
+      "parameters": {
+        "fileName": "=shipment_table_export_{{ $now.format('yyyy-MM-dd') }}.csv",
+        "binaryData": true
+      },
+      "type": "n8n-nodes-base.microsoftOneDrive",
+      "typeVersion": 1,
+      "position": [
+        160,
+        1232
+      ],
+      "id": "82461ef7-ca4d-4b21-922a-bf592f2b47b0",
+      "name": "Upload a file",
+      "credentials": {
+        "microsoftOneDriveOAuth2Api": {
+          "id": "70v5BUEO2xxhHaoT",
+          "name": "Microsoft Drive account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 3
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -864,
+        352
+      ],
+      "id": "64c75a3e-51cc-406f-bc5c-a8a4dc968525",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        416,
+        -112
+      ],
+      "id": "affdc2ef-f6da-4ec1-862b-6fea8b3a8a7d",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1216,
+        640
+      ],
+      "id": "242a0af5-af58-447e-8271-e36fc2d30774",
+      "name": "No Operation, do nothing1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        368,
+        1232
+      ],
+      "id": "2f05a61f-409c-468d-8f3f-0645f0f21d92",
+      "name": "No Operation, do nothing2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get many rows1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Initialize Variables1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get many rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delay1": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Fetch Page1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Cursor1": {
+      "main": [
+        [
+          {
+            "node": "Delay1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has More Pages?1": {
+      "main": [
+        [
+          {
+            "node": "Update Cursor1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Shipment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Pagination1": {
+      "main": [
+        [
+          {
+            "node": "Has More Pages?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Fetch Page1": {
+      "main": [
+        [
+          {
+            "node": "Check Pagination1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Shipment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize Variables1": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Fetch Page1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete a row1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Delete a row1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Upload a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many rows1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Initialize Variables1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get many rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row2": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload a file": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9edee214-4a83-4569-980e-0daa3b6e7e3c",
+  "meta": {
+    "instanceId": "4c1af81d3cffefd77e8c8c2be45ee650aee3d5c517ab26db8886d572e0dcad8f"
+  },
+  "id": "cj6ZsMGB1CaxKt0P",
+  "tags": []
+}

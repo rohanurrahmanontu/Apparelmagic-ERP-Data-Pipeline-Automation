@@ -1,0 +1,3150 @@
+{
+  "name": "Shipments Table Export",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "await new Promise(resolve => setTimeout(resolve, 300));\nconsole.log('---');\nreturn $input.all();"
+      },
+      "id": "e535ee2e-d179-4a6e-9d5e-48d8d1245110",
+      "name": "Delay",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        -304
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "last_id",
+              "name": "last_id",
+              "value": "={{ $json.last_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "488e7985-5cf6-4017-9d04-2c0e289360bc",
+      "name": "Update Cursor",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        16,
+        -304
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "has-more",
+              "leftValue": "={{ $json.has_more }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a9336076-48b6-4714-a23c-94d1600165ff",
+      "name": "Has More Pages?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        -304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const currentResponse = $input.item.json;\nconst nextLastId = currentResponse.meta?.pagination?.last_id || null;\n\nconsole.log(`Retrieved ${(currentResponse.response || []).length} POs. Next: ${nextLastId || 'NONE'}`);\n\nreturn {\n  json: {\n    last_id: nextLastId,\n    has_more: !!nextLastId\n  }\n};"
+      },
+      "id": "b487bae9-3776-4d2c-ac19-ae164c2f20a8",
+      "name": "Check Pagination",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -432,
+        -304
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://jackandsage.app.apparelmagic.com/api/json/purchase_orders/?token=xyz&time={{ Math.floor(Date.now() / 1000) }}{{ $json.last_id ? '&pagination[last_id]=' + $json.last_id : '' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "94e8e35a-d0c7-4e25-ba2b-9f1c8e441cd1",
+      "name": "HTTP - Fetch Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -656,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "page_count",
+              "name": "page_count",
+              "value": "=0",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b3648851-20f9-47f1-a345-d8a0a154e395",
+      "name": "Initialize Variables",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        -880,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "Purchase Orders Table Export",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Po ID",
+              "fieldValue": "={{ $json.po_id }}"
+            },
+            {
+              "fieldId": "Data Due Dates Overridden",
+              "fieldValue": "={{ $json.data_due_dates_overridden }}"
+            },
+            {
+              "fieldId": "Data Warehouses Overridden",
+              "fieldValue": "={{ $json.data_warehouses_overridden }}"
+            },
+            {
+              "fieldId": "Data Ex Factory Dates Overridden",
+              "fieldValue": "={{ $json.data_ex_factory_dates_overridden }}"
+            },
+            {
+              "fieldId": "Data Start Dates Overridden",
+              "fieldValue": "={{ $json.data_start_dates_overridden }}"
+            },
+            {
+              "fieldId": "Vendor PO",
+              "fieldValue": "={{ $json.vendor_po }}"
+            },
+            {
+              "fieldId": "Date",
+              "fieldValue": "={{ $json.date }}"
+            },
+            {
+              "fieldId": "Date Ex Factory",
+              "fieldValue": "={{ $json.date_ex_factory }}"
+            },
+            {
+              "fieldId": "Date Due",
+              "fieldValue": "={{ $json.date_due }}"
+            },
+            {
+              "fieldId": "Vendor",
+              "fieldValue": "={{ $json.vendor }}"
+            },
+            {
+              "fieldId": "Amount",
+              "fieldValue": "={{ $json.amount }}"
+            },
+            {
+              "fieldId": "Qty",
+              "fieldValue": "={{ $json.qty }}"
+            },
+            {
+              "fieldId": "Is Actualized",
+              "fieldValue": "={{ $json.is_actualized }}"
+            },
+            {
+              "fieldId": "Locked",
+              "fieldValue": "={{ $json.locked }}"
+            },
+            {
+              "fieldId": "Qty Received",
+              "fieldValue": "={{ $json.qty_received }}"
+            },
+            {
+              "fieldId": "Warehouse",
+              "fieldValue": "={{ $json.warehouse }}"
+            },
+            {
+              "fieldId": "Amount Paid",
+              "fieldValue": "={{ $json.amount_paid }}"
+            },
+            {
+              "fieldId": "Country",
+              "fieldValue": "={{ $json.country }}"
+            },
+            {
+              "fieldId": "Amount Received",
+              "fieldValue": "={{ $json.amount_received }}"
+            },
+            {
+              "fieldId": "Target Due Date",
+              "fieldValue": "={{ $json.target_due_date }}"
+            },
+            {
+              "fieldId": "Creation Date",
+              "fieldValue": "={{ $json.creation_date.toDateTime().format('yyyy-MM-dd') }}"
+            },
+            {
+              "fieldId": "Creation User",
+              "fieldValue": "={{ $json.creation_user }}"
+            },
+            {
+              "fieldId": "Division",
+              "fieldValue": "=Jack and Sage"
+            },
+            {
+              "fieldId": "Freight Mode",
+              "fieldValue": "={{ $json.freight_mode }}"
+            },
+            {
+              "fieldId": "Qty Cxl",
+              "fieldValue": "={{ $json.qty_cxl }}"
+            },
+            {
+              "fieldId": "Qty Open",
+              "fieldValue": "={{ $json.qty_open }}"
+            },
+            {
+              "fieldId": "Wholesale or Custom",
+              "fieldValue": "={{ $json.wholesale_or_custom }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -80
+      ],
+      "id": "135cd389-deb3-4856-8efb-2cf67dbc1052",
+      "name": "Create a row"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2080,
+        1584
+      ],
+      "id": "2a002728-46d3-4916-b495-57d5dd4077d8",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ================================================\n// FLATTEN PURCHASE ORDERS FOR SUPABASE\n// ================================================\n\nconst apiResponse = $input.item.json;\nconst purchaseOrders = apiResponse.response || [];\n\nconst flattenedRecords = [];\n\nfor (const po of purchaseOrders) {\n  \n  flattenedRecords.push({\n    // PO ID\n    po_id: po.purchase_order_id,\n    \n    // Override Flags\n    data_due_dates_overridden: po.item_due_dates_overridden === '1',\n    data_warehouses_overridden: po.item_warehouses_overridden === '1',\n    data_ex_factory_dates_overridden: po.item_ex_factory_dates_overridden === '1',\n    data_start_dates_overridden: po.item_start_dates_overridden === '1',\n    \n    // Vendor & PO Info\n    vendor_po: po.vendor_po,\n    vendor: po.vendor_name,\n    \n    // Dates\n    date: po.date,\n    date_internal: po.date_internal,\n    date_ex_factory: po.date_ex_factory,\n    date_ex_factory_internal: po.date_ex_factory_internal,\n    date_due: po.date_due,\n    date_due_internal: po.date_due_internal,\n    target_due_date: po.target_due_date,\n    creation_date: po.creation_time,\n    \n    // Amounts\n    amount: parseFloat(po.amount || 0),\n    amount_paid: parseFloat(po.amount || 0) - parseFloat(po.amount_open || 0),\n    amount_received: parseFloat(po.amount || 0) - parseFloat(po.amount_open || 0),\n    \n    // Quantities\n    qty: parseFloat(po.qty || 0),\n    qty_received: parseFloat(po.qty_received || 0),\n    qty_cxl: parseFloat(po.qty_cxl || 0),\n    qty_open: parseFloat(po.qty_open || 0),\n    \n    // Status Flags\n    is_actualized: po.is_actualized === '1',\n    locked: po.is_locked === '1',\n    \n    // Location & Logistics\n    warehouse: po.warehouse_id,\n    country: po.country,\n    division: po.division_id,\n    freight_mode: po.freight_type,\n    \n    // Creation Info\n    creation_user: po.creation_user_name,\n    \n    // Additional Info\n    wholesale_or_custom: po.wholesale_or_custom\n  });\n}\n\nconsole.log(`Flattened ${flattenedRecords.length} purchase orders`);\n\nreturn flattenedRecords.map(record => ({ json: record }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        -112
+      ],
+      "id": "de90cead-b2cd-4eba-822b-f7f606d1c28a",
+      "name": "Purchase Order"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "Purchase Orders Table Export",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -688,
+        -704
+      ],
+      "id": "aefa80f7-dbe2-4b11-bfe0-c9cb7ea16cd5",
+      "name": "Get many rows"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -432,
+        -688
+      ],
+      "id": "97aa3ec6-ce1c-41ba-8054-9f8fe225b163",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "Purchase Orders Table Export",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "Po ID",
+              "condition": "eq",
+              "keyValue": "={{ $json[\"Po ID\"] }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        64,
+        -608
+      ],
+      "id": "9ea1cade-33c8-4807-8bf3-89ef93a5f1c3",
+      "name": "Delete a row"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "Purchase Orders Table Export",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -880,
+        144
+      ],
+      "id": "1af71179-abfd-4f49-bca8-b45d9baafdbf",
+      "name": "GetAllPOData"
+    },
+    {
+      "parameters": {
+        "options": {
+          "fileName": "=purchase_orderTable_export_{{ $now.format('yyyy-MM-dd') }}.csv"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        -656,
+        144
+      ],
+      "id": "b1a7d839-26f2-41b0-a5d3-9321d2b196aa",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -224,
+        -592
+      ],
+      "id": "eaa91616-dd1d-4ac7-90bf-8078b3091c75",
+      "name": "Wait",
+      "webhookId": "0aee63e7-f82f-4da3-8bec-99b64ae27ac9"
+    },
+    {
+      "parameters": {
+        "fileName": "=purchase_orderTable_export_{{ $now.format('yyyy-MM-dd') }}.csv",
+        "binaryData": true
+      },
+      "type": "n8n-nodes-base.microsoftOneDrive",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        144
+      ],
+      "id": "88e938a1-c7e4-440a-ad32-144bc8de345b",
+      "name": "Upload a file"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        -784
+      ],
+      "id": "3485c540-b74e-4666-99ac-704b948be7fb",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        448,
+        -80
+      ],
+      "id": "5eae9dd3-8ac3-48d8-84e0-420e71685877",
+      "name": "No Operation, do nothing1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        144
+      ],
+      "id": "19829dd0-4e01-4a95-8f8f-5ea557b4c132",
+      "name": "No Operation, do nothing2"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1456,
+        -336
+      ],
+      "id": "9822b0b2-1458-4b16-8d87-286ba2ac0343",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "await new Promise(resolve => setTimeout(resolve, 300));\nconsole.log('---');\nreturn $input.all();"
+      },
+      "id": "f8c450b9-0332-49bd-9f97-f7f5272288fe",
+      "name": "Delay1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        3248
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "last_id",
+              "name": "last_id",
+              "value": "={{ $json.last_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "582d9957-3bbc-4e42-894c-e99eafcadc30",
+      "name": "Update Cursor1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        208,
+        3248
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "has-more",
+              "leftValue": "={{ $json.has_more }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "62b5b1a6-4998-44d9-a415-f825a230f794",
+      "name": "Has More Pages?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        3248
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const currentResponse = $input.item.json;\nconst nextLastId = currentResponse.meta?.pagination?.last_id || null;\n\nconsole.log(`Retrieved ${(currentResponse.response || []).length} POs. Next: ${nextLastId || 'NONE'}`);\n\nreturn {\n  json: {\n    last_id: nextLastId,\n    has_more: !!nextLastId\n  }\n};"
+      },
+      "id": "28603513-e1a2-42e2-b74c-039094901214",
+      "name": "Check Pagination1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        3248
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://jackandsage.app.apparelmagic.com/api/json/purchase_orders/?token=xyz&time={{ Math.floor(Date.now() / 1000) }}{{ $json.last_id ? '&pagination[last_id]=' + $json.last_id : '' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "54297348-9a32-4d8f-b96c-fd64dcc3ffb8",
+      "name": "HTTP - Fetch Page1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -464,
+        3424
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "page_count",
+              "name": "page_count",
+              "value": "=0",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b88f3c2a-42b1-4eb4-a557-a8ec926ac56a",
+      "name": "Initialize Variables1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        -688,
+        3424
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "purchase_order_items_table_export",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "ID",
+              "fieldValue": "={{ $json.purchase_order_items_id }}"
+            },
+            {
+              "fieldId": "Data Due Dates Overridden",
+              "fieldValue": "={{ $json.data_due_dates_overridden }}"
+            },
+            {
+              "fieldId": "Data Warehouses Overridden",
+              "fieldValue": "={{ $json.data_warehouses_overridden }}"
+            },
+            {
+              "fieldId": "Data Ex Factory Dates Overridden",
+              "fieldValue": "={{ $json.data_ex_factory_dates_overridden }}"
+            },
+            {
+              "fieldId": "Data Start Dates Overridden",
+              "fieldValue": "={{ $json.data_start_dates_overridden }}"
+            },
+            {
+              "fieldId": "Containing Style",
+              "fieldValue": "={{ $json.containing_style }}"
+            },
+            {
+              "fieldId": "Size",
+              "fieldValue": "={{ $json.size }}"
+            },
+            {
+              "fieldId": "UPC",
+              "fieldValue": "={{ $json.upc }}"
+            },
+            {
+              "fieldId": "Retail Price",
+              "fieldValue": "={{ $json.retail_price }}"
+            },
+            {
+              "fieldId": "Description",
+              "fieldValue": "={{ $json.description }}"
+            },
+            {
+              "fieldId": "Description",
+              "fieldValue": "={{ $json.description }}"
+            },
+            {
+              "fieldId": "Color",
+              "fieldValue": "={{ $json.color }}"
+            },
+            {
+              "fieldId": "Qty",
+              "fieldValue": "={{ $json.qty }}"
+            },
+            {
+              "fieldId": "Qty Open",
+              "fieldValue": "={{ $json.qty_open }}"
+            },
+            {
+              "fieldId": "Qty Received",
+              "fieldValue": "={{ $json.qty_received }}"
+            },
+            {
+              "fieldId": "PO ID",
+              "fieldValue": "={{ $json.po_id }}"
+            },
+            {
+              "fieldId": "Category",
+              "fieldValue": "={{ $json.category }}"
+            },
+            {
+              "fieldId": "Qty Cxl",
+              "fieldValue": "={{ $json.qty_cxl }}"
+            },
+            {
+              "fieldId": "Warehouse",
+              "fieldValue": "={{ $json.warehouse }}"
+            },
+            {
+              "fieldId": "Unit Cost",
+              "fieldValue": "={{ $json.unit_cost }}"
+            },
+            {
+              "fieldId": "Unit Cost Landed Est",
+              "fieldValue": "={{ $json.unit_cost_landed_est }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        528,
+        3472
+      ],
+      "id": "0f135e2d-c1be-4e0b-9b08-e7f5f9fbcbb8",
+      "name": "Create a row1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ================================================\n// FLATTEN PURCHASE ORDER ITEMS WITH CATEGORY EXTRACTION\n// ================================================\n\nconst apiResponse = $input.item.json;\nconst purchaseOrders = apiResponse.response || [];\n\nconst flattenedItems = [];\n\n// Function to extract category from description\nfunction extractCategory(description) {\n  if (!description) return null;\n  \n  const desc = description.toLowerCase();\n  \n  // Category keywords (order matters - check more specific first)\n  const categories = {\n    'Camp Shirt': /camp\\s*shirt/i,\n    'Aloha Shirt': /aloha\\s*shirt/i,\n    'T-Shirt': /t[\\s-]?shirt|tshirt/i,\n    'Long Sleeve Shirt': /long\\s*sleeve\\s*shirt/i,\n    'Shirt': /\\bshirt\\b/i,\n    'Fleece': /fleece/i,\n    'Hoodie': /hoodie|hoody/i,\n    'Jacket': /jacket/i,\n    'Vest': /vest/i,\n    'Onsie': /onsie|onesie/i,\n    'Trucker Hat': /trucker/i,\n    'Hat': /\\bhat\\b|cap\\b/i,\n    'Beanie': /beanie/i,\n    'Socks': /sock/i,\n    'Patch': /patch/i,\n    'Brim Tag': /brim\\s*tag/i,\n    'Tag': /\\btag\\b/i,\n    'Keychain': /keychain|key\\s*chain/i,\n    'Sticker': /sticker/i,\n    'Performance Tek': /performance\\s*tek/i,\n    'Performance': /performance/i,\n    'Custom': /custom/i,\n    'Fabric': /fabric|suede/i\n  };\n  \n  // Check each category pattern\n  for (const [category, pattern] of Object.entries(categories)) {\n    if (pattern.test(description)) {\n      return category;\n    }\n  }\n  \n  return 'Other';\n}\n\nfor (const po of purchaseOrders) {\n  \n  // Get PO-level override flags\n  const dueDatesOverridden = po.item_due_dates_overridden === '1';\n  const warehousesOverridden = po.item_warehouses_overridden === '1';\n  const exFactoryDatesOverridden = po.item_ex_factory_dates_overridden === '1';\n  const startDatesOverridden = po.item_start_dates_overridden === '1';\n  \n  // Get items array\n  const items = po.purchase_order_items || [];\n  \n  // Process each item\n  for (const item of items) {\n    \n    // Extract category from description\n    const category = extractCategory(item.description);\n    \n    flattenedItems.push({\n      // Item ID\n      purchase_order_items_id: item.id,\n      \n      // PO ID (reference)\n      po_id: po.purchase_order_id,\n      \n      // Override Flags (from PO level)\n      data_due_dates_overridden: dueDatesOverridden,\n      data_warehouses_overridden: warehousesOverridden,\n      data_ex_factory_dates_overridden: exFactoryDatesOverridden,\n      data_start_dates_overridden: startDatesOverridden,\n      \n      // Product Info\n      containing_style: item.style_number,\n      size: item.size,\n      upc: item.upc,\n      retail_price: null, // Not available in the data\n      description: item.description,\n      color: item.attr_2, // attr_2 is typically color\n      category: category, // Extracted from description\n      \n      // Quantities\n      qty: parseFloat(item.qty || 0),\n      qty_open: parseFloat(item.qty_open || 0),\n      qty_received: parseFloat(item.qty_received || 0),\n      qty_cxl: parseFloat(item.qty_cxl || 0),\n      \n      // Location\n      warehouse: item.warehouse_id,\n      \n      // Costs\n      unit_cost: parseFloat(item.unit_cost || 0),\n      unit_cost_landed_est: parseFloat(item.unit_cost_landed_est || 0)\n    });\n  }\n}\n\nconsole.log(`Flattened ${flattenedItems.length} purchase order items from ${purchaseOrders.length} POs`);\n\nreturn flattenedItems.map(item => ({ json: item }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        3440
+      ],
+      "id": "a085e17d-154c-4c10-baec-858cca72e3cf",
+      "name": "Purchase Order1"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "purchase_order_items_table_export",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -784,
+        2896
+      ],
+      "id": "b3c917ab-9d1d-4225-98c7-e2fc6dfb8c62",
+      "name": "Get many rows1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -304,
+        2752
+      ],
+      "id": "2eb8dab5-0bf9-41e7-914b-0467aa826705",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "purchase_order_items_table_export",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "ID",
+              "condition": "eq",
+              "keyValue": "={{ $('Get many rows1').item.json.ID }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -464,
+        2896
+      ],
+      "id": "390455e8-fa38-40a2-a6f6-4af4bfcfb1e5",
+      "name": "Delete a row1"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "purchase_order_items_table_export",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -688,
+        3696
+      ],
+      "id": "240d6fb3-d276-44f7-a81d-d8ad8d725e48",
+      "name": "GetAllPOData1"
+    },
+    {
+      "parameters": {
+        "options": {
+          "fileName": "=purchase_orderTable_export_{{ $now.format('yyyy-MM-dd') }}.csv"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        -464,
+        3696
+      ],
+      "id": "d2419317-e573-427d-95e6-d0d55272f781",
+      "name": "Convert to File1"
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -112,
+        2896
+      ],
+      "id": "717a2cd0-1b68-4742-b1e3-5e3082aedd25",
+      "name": "Wait1",
+      "webhookId": "340892ff-da9e-44d7-a0ea-35698ea23a34"
+    },
+    {
+      "parameters": {
+        "fileName": "=purchase_orderTable_export_{{ $now.format('yyyy-MM-dd') }}.csv",
+        "binaryData": true
+      },
+      "type": "n8n-nodes-base.microsoftOneDrive",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        3696
+      ],
+      "id": "f5224c46-d678-4f0f-b767-aac9be343a7c",
+      "name": "Upload a file1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        3696
+      ],
+      "id": "ffc5b5cb-2b52-4672-8088-a43ea8bf7078",
+      "name": "No Operation, do nothing3"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        2720
+      ],
+      "id": "6c760d57-e145-4e82-addd-55c8da0a84b2",
+      "name": "No Operation, do nothing4"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        736,
+        3472
+      ],
+      "id": "c7f2b41d-9e75-4646-8c2a-b2fba7851105",
+      "name": "No Operation, do nothing5"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 3
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1440,
+        3120
+      ],
+      "id": "d32d7516-0c92-48d0-a582-fc97a2bc4e49",
+      "name": "Schedule Trigger1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ================================================\n// FLATTEN RECEIVERS FOR SUPABASE\n// ================================================\n\nconst apiResponse = $input.item.json;\nconst receivers = apiResponse.response || [];\n\nconst flattenedRecords = [];\n\nfor (const receiver of receivers) {\n  \n  flattenedRecords.push({\n    // Receiver ID\n    receiver_id: receiver.receiver_id,\n    \n    // Override Flags\n    data_warehouses_overridden: receiver.item_warehouses_overridden === '1',\n    \n    // Dates\n    date: receiver.date,\n    date_internal: receiver.date_internal,\n    date_in_transit: receiver.date_in_transit,\n    date_in_transit_internal: receiver.date_in_transit_internal,\n    date_due: receiver.date_expected, // date_expected is the due date\n    date_due_internal: receiver.date_expected_internal,\n    \n    // Location & PO Info\n    warehouse: receiver.warehouse_id,\n    purchase_order: receiver.purchase_order_id,\n    project: null, // Not available at receiver level (only in receiver_items)\n    vendor: receiver.vendor_name,\n    \n    // Quantities & Amounts\n    qty: parseFloat(receiver.qty || 0),\n    amount: parseFloat(receiver.amount || 0),\n    \n    // Status Flags\n    void: receiver.void === '1',\n    locked: receiver.is_locked === '1',\n    is_in_transit: receiver.is_in_transit === '1',\n    \n    // Creation Info\n    creation_user: receiver.creation_user_name,\n    creation_date: receiver.creation_time\n  });\n}\n\nconsole.log(`Flattened ${flattenedRecords.length} receivers`);\n\nreturn flattenedRecords.map(record => ({ json: record }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3200,
+        656
+      ],
+      "id": "fe927124-bed7-47ee-9d90-3277cc6807b8",
+      "name": "Receivers"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "Receivers_table_export",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2416,
+        848
+      ],
+      "id": "f1bc8738-19a1-473d-bd1f-ae7658e284f1",
+      "name": "GetAllRecieversData"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Accept different possible structures\nlet data =\n  $json.all_data ||\n  $json.all_purchase_orders ||\n  $json.response ||\n  $input.all().map(i => i.json);\n\n// Flatten if nested arrays exist\nif (Array.isArray(data) && Array.isArray(data[0])) {\n  data = data.flat();\n}\n\n// Return every object as its own item\nreturn data.map(record => ({\n  json: record\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3648,
+        864
+      ],
+      "id": "edcf386f-12b4-4342-9387-b59996f46589",
+      "name": "Receivers1",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "await new Promise(resolve => setTimeout(resolve, 300));\nconsole.log('---');\nreturn $input.all();"
+      },
+      "id": "f8d91569-ce06-495f-9cb8-70bcc366bb82",
+      "name": "Delay2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3472,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "last_id",
+              "name": "last_id",
+              "value": "={{ $json.last_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0e4c2ea6-dbc0-4ae7-891e-c989a145fb78",
+      "name": "Update Cursor2",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        3248,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "has-more",
+              "leftValue": "={{ $json.has_more }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "047514a6-6f32-419b-aa83-4f36ee500755",
+      "name": "Has More Pages?2",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2976,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const currentResponse = $input.item.json;\nconst nextLastId = currentResponse.meta?.pagination?.last_id || null;\n\nconsole.log(`Retrieved ${(currentResponse.response || []).length} POs. Next: ${nextLastId || 'NONE'}`);\n\nreturn {\n  json: {\n    last_id: nextLastId,\n    has_more: !!nextLastId\n  }\n};"
+      },
+      "id": "36cd9902-4f40-474b-a5b0-fa535099d63c",
+      "name": "Check Pagination2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2800,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://jackandsage.app.apparelmagic.com/api/json/receivers/?token=xyz&time={{ Math.floor(Date.now() / 1000) }}{{ $json.last_id ? '&pagination[last_id]=' + $json.last_id : '' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "ec5c2f3b-5a2c-4e46-b8a7-19c5c1bf5a47",
+      "name": "HTTP - Fetch Page2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2640,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "page_count",
+              "name": "page_count",
+              "value": "=0",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c215fb40-1d6b-4761-bb83-669424339995",
+      "name": "Initialize Variables2",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        2352,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "Receivers_table_export",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Recievers ID",
+              "fieldValue": "={{ $json.receiver_id }}"
+            },
+            {
+              "fieldId": "Data Warehouses Overridden",
+              "fieldValue": "={{ $json.item_warehouses_overridden }}"
+            },
+            {
+              "fieldId": "Date",
+              "fieldValue": "={{ $json.date }}"
+            },
+            {
+              "fieldId": "Warehouse",
+              "fieldValue": "null"
+            },
+            {
+              "fieldId": "Purchase Order",
+              "fieldValue": "=0"
+            },
+            {
+              "fieldId": "Project",
+              "fieldValue": "null"
+            },
+            {
+              "fieldId": "Vendor",
+              "fieldValue": "={{ $json.vendor_name }}"
+            },
+            {
+              "fieldId": "Qty",
+              "fieldValue": "={{ $json.qty }}"
+            },
+            {
+              "fieldId": "Amount",
+              "fieldValue": "={{ $json.amount }}"
+            },
+            {
+              "fieldId": "Void",
+              "fieldValue": "={{ $json.void }}"
+            },
+            {
+              "fieldId": "Locked",
+              "fieldValue": "={{ $json.is_locked }}"
+            },
+            {
+              "fieldId": "Is In Transit",
+              "fieldValue": "={{ $json.is_in_transit }}"
+            },
+            {
+              "fieldId": "Date In Transit",
+              "fieldValue": "={{ $json.date_in_transit }}"
+            },
+            {
+              "fieldId": "Creation User",
+              "fieldValue": "={{ $json.creation_user_name }}"
+            },
+            {
+              "fieldId": "Date Due",
+              "fieldValue": "null"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3472,
+        576
+      ],
+      "id": "7722cd89-b683-4e78-89af-101e50ed7264",
+      "name": "Create a row2"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "Receivers_table_export",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2352,
+        32
+      ],
+      "id": "cfd745c5-c564-4fd1-a663-87de96d1f0e5",
+      "name": "Get many rows2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2560,
+        16
+      ],
+      "id": "75f16a80-b2d5-4531-8950-e0395b2a5dd2",
+      "name": "Loop Over Items2"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "Receivers_table_export",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "Recievers ID",
+              "condition": "fullText",
+              "searchFunction": "fts",
+              "keyValue": "={{ $('Get many rows2').item.json[\"Recievers ID\"] }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3152,
+        32
+      ],
+      "id": "d3f98a7f-a379-4060-835c-4d51cafb9089",
+      "name": "Delete a row2"
+    },
+    {
+      "parameters": {
+        "binaryPropertyName": "=Receivers_Tables_Export_{{ $now.format('yyyy-MM-dd') }}",
+        "options": {
+          "fileName": "=Receivers_Tables_Export_{{ $now.format('yyyy-MM-dd') }}"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        2768,
+        848
+      ],
+      "id": "654fbe53-c8ef-4fa0-8e93-84192980c7ce",
+      "name": "Convert to File2"
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2768,
+        112
+      ],
+      "id": "b4f5913a-145e-4962-93f7-54329247be81",
+      "name": "Wait2",
+      "webhookId": "6c0f28f3-6878-4602-aa6b-9e0a27f02089"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 3
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        1776,
+        368
+      ],
+      "id": "8e7fd81f-8371-44bb-bdd9-d242215c854c",
+      "name": "Schedule Trigger2"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2768,
+        -80
+      ],
+      "id": "4ee3f1b9-070f-4b45-a8b0-4d92e3ae39aa",
+      "name": "No Operation, do nothing6"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        3680,
+        576
+      ],
+      "id": "2ed2e79a-d893-4ec9-8331-51c21ee2c1de",
+      "name": "No Operation, do nothing7"
+    },
+    {
+      "parameters": {
+        "fileName": "=Receivers_Tables_Export_{{ $now.format('yyyy-MM-dd') }}",
+        "binaryData": true,
+        "binaryPropertyName": "=Receivers_Tables_Export_{{ $now.format('yyyy-MM-dd') }}"
+      },
+      "type": "n8n-nodes-base.microsoftOneDrive",
+      "typeVersion": 1,
+      "position": [
+        2976,
+        848
+      ],
+      "id": "543d9ac0-4bff-4e9f-bf92-ee3d783d124a",
+      "name": "Upload a file2"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        3184,
+        848
+      ],
+      "id": "98c9043e-1bbf-4f9b-acae-fdd416303857",
+      "name": "No Operation, do nothing8"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "Sales_orders_table_export",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2400,
+        2960
+      ],
+      "id": "00aefdb8-321e-4a56-947e-0c9dbe09286c",
+      "name": "GetAllSalesOrderData"
+    },
+    {
+      "parameters": {
+        "jsCode": "await new Promise(resolve => setTimeout(resolve, 300));\nconsole.log('---');\nreturn $input.all();"
+      },
+      "id": "3d38ff68-0869-4d2a-a299-6bab240c9528",
+      "name": "Delay3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3744,
+        2512
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "last_id",
+              "name": "last_id",
+              "value": "={{ $json.last_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e0222db3-2738-486c-bb2e-e5b1aff3722f",
+      "name": "Update Cursor3",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        3520,
+        2512
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "has-more",
+              "leftValue": "={{ $json.has_more }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bd57ebb9-203a-423e-979b-c18a004b3f9e",
+      "name": "Has More Pages?3",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3296,
+        2512
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const currentResponse = $input.item.json;\nconst nextLastId = currentResponse.meta?.pagination?.last_id || null;\n\nconsole.log(`Retrieved ${(currentResponse.response || []).length} POs. Next: ${nextLastId || 'NONE'}`);\n\nreturn {\n  json: {\n    last_id: nextLastId,\n    has_more: !!nextLastId\n  }\n};"
+      },
+      "id": "5f9ff6e9-c671-4c8a-a763-0e42aad30fac",
+      "name": "Check Pagination3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3072,
+        2512
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://jackandsage.app.apparelmagic.com/api/json/orders/?token=xyz&time={{ Math.floor(Date.now() / 1000) }}{{ $json.last_id ? '&pagination[last_id]=' + $json.last_id : '' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "80ac9722-34d3-4f35-986b-e176e5f4ca72",
+      "name": "HTTP - Fetch Page3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2848,
+        2688
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "page_count",
+              "name": "page_count",
+              "value": "=0",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "10122548-bda0-4b15-b7a7-c025d342c108",
+      "name": "Initialize Variables3",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        2624,
+        2688
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ================================================\n// FLATTEN ORDERS FOR SUPABASE\n// Verified and tested with your data\n// ================================================\n\nconst apiResponse = $input.item.json;\nconst orders = apiResponse.response || [];\n\nconst flattenedRecords = [];\n\nfor (const order of orders) {\n  \n  // Extract salesperson from commissions\n  const commissions = order.commissions || [];\n  const salesperson = commissions.length > 0 ? commissions[0].name : null;\n  \n  flattenedRecords.push({\n    // Required columns\n    order: order.order_id,\n    account_number: order.account_number,\n    customer: order.customer_name,\n    city: order.city,\n    state: order.state,\n    email: order.email,\n    salesperson: salesperson,\n    creation_date: order.creation_time,\n    date: order.date,\n    date_due: order.date_due,\n    amt_open: parseFloat(order.amount_open || 0),\n    amount: parseFloat(order.amount || 0),\n    creation_user: order.creation_user_name\n  });\n}\n\nconsole.log(`Flattened ${flattenedRecords.length} orders`);\n\nreturn flattenedRecords.map(record => ({ json: record }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3520,
+        2704
+      ],
+      "id": "34db8f03-2ced-4a3b-b680-5151f4e1168c",
+      "name": "Receivers2"
+    },
+    {
+      "parameters": {
+        "tableId": "Sales_orders_table_export",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Order",
+              "fieldValue": "={{ $json.order }}"
+            },
+            {
+              "fieldId": "Account #",
+              "fieldValue": "={{ $json.amount }}"
+            },
+            {
+              "fieldId": "Customer",
+              "fieldValue": "={{ $json.customer }}"
+            },
+            {
+              "fieldId": "City",
+              "fieldValue": "={{ $json.city }}"
+            },
+            {
+              "fieldId": "State",
+              "fieldValue": "={{ $json.state }}"
+            },
+            {
+              "fieldId": "Email",
+              "fieldValue": "={{ $json.email }}"
+            },
+            {
+              "fieldId": "Salesperson",
+              "fieldValue": "={{ $json.salesperson }}"
+            },
+            {
+              "fieldId": "Creation Date",
+              "fieldValue": "={{ $json.creation_date }}"
+            },
+            {
+              "fieldId": "Date",
+              "fieldValue": "={{ $json.date }}"
+            },
+            {
+              "fieldId": "Date Due",
+              "fieldValue": "={{ $json.date_due }}"
+            },
+            {
+              "fieldId": "Amt Open",
+              "fieldValue": "={{ $json.amt_open }}"
+            },
+            {
+              "fieldId": "Amount",
+              "fieldValue": "={{ $json.amount }}"
+            },
+            {
+              "fieldId": "Creation User",
+              "fieldValue": "={{ $json.creation_user }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3744,
+        2736
+      ],
+      "id": "d5bf99c9-b9c8-492c-9dd6-a822b1c68c80",
+      "name": "Create a row3"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "Sales_orders_table_export",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2400,
+        2192
+      ],
+      "id": "b39d5851-f5ff-4729-91d8-8d1297ca4db2",
+      "name": "Get many rows3"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2688,
+        2192
+      ],
+      "id": "1ea4f544-b0b7-41ff-a7bb-b6abf6125537",
+      "name": "Loop Over Items3"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "Receivers_table_export",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "Recievers ID",
+              "condition": "is",
+              "keyValue": "={{ $json.Order }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3168,
+        2224
+      ],
+      "id": "3a5938be-3954-4232-a8e4-8047384accc5",
+      "name": "Delete a row3"
+    },
+    {
+      "parameters": {
+        "binaryPropertyName": "=Sales_Order_Tables_Export_{{ $now.format('yyyy-MM-dd') }}",
+        "options": {
+          "fileName": "=Sales_Order_Tables_Export_{{ $now.format('yyyy-MM-dd') }}"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        2624,
+        2960
+      ],
+      "id": "abc0f924-5e3c-49ee-adcb-324ff25a18df",
+      "name": "Convert to File3"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 3
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        1952,
+        2640
+      ],
+      "id": "661685fb-052e-43bf-9e40-8d7ee85def05",
+      "name": "Schedule Trigger3"
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2944,
+        2256
+      ],
+      "id": "899152bf-667e-4a73-9ebe-10700f42feee",
+      "name": "Wait3",
+      "webhookId": "3b3e6897-1d69-4d97-bed7-c3b86f074f24"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2960,
+        2048
+      ],
+      "id": "ad984a60-06bc-4944-9389-1403501fc503",
+      "name": "No Operation, do nothing9"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        3952,
+        2736
+      ],
+      "id": "521fddb2-834d-4ee0-be8f-4d614bfbc454",
+      "name": "No Operation, do nothing10"
+    },
+    {
+      "parameters": {
+        "fileName": "=Sales_Order_Tables_Export_{{ $now.format('yyyy-MM-dd') }}",
+        "binaryData": true,
+        "binaryPropertyName": "=Sales_Order_Tables_Export_{{ $now.format('yyyy-MM-dd') }}"
+      },
+      "type": "n8n-nodes-base.microsoftOneDrive",
+      "typeVersion": 1,
+      "position": [
+        2832,
+        2960
+      ],
+      "id": "5e3ef84a-92d0-45a5-8941-02b78f8e8b72",
+      "name": "Upload a file3"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        3040,
+        2960
+      ],
+      "id": "489a52df-5c4b-42ba-ab97-b141c19bfca7",
+      "name": "No Operation, do nothing11"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ================================================\n// CUSTOM FLATTENING - YOUR SPECIFIC COLUMNS ONLY\n// ================================================\n\nconst apiResponse = $input.item.json;\nconst shipments = apiResponse.response || [];\n\nconst records = [];\n\nfor (const shipment of shipments) {\n  records.push({\n    // Core IDs\n    shipment_id: shipment.id,\n    invoice_id: shipment.invoice_id,\n    order_id: shipment.selected_pick_ticket_ids, // This seems to be the order ID\n    \n    // Dates\n    date: shipment.date,\n    date_internal: shipment.date_internal,\n    date_due: shipment.date_scheduled_delivery, // Date due for delivery\n    creation_date: shipment.creation_time,\n    \n    // Customer\n    customer: shipment.customer_name,\n    customer_id: shipment.customer_id,\n    \n    // Quantities & Weight\n    qty_boxes: parseInt(shipment.qty_boxes || 0),\n    qty: parseFloat(shipment.qty || 0),\n    weight: parseFloat(shipment.weight || 0),\n    \n    // Status\n    void: shipment.void === '1', // Convert to boolean\n    \n    // Tracking & User\n    tracking_number: shipment.tracking_number,\n    creation_user: shipment.creation_user_name,\n    creation_user_id: shipment.creation_user_id,\n    \n    // Warehouse\n    warehouse: shipment.warehouse_id,\n    \n    // Additional useful fields\n    ship_to: shipment.name,\n    division: shipment.division_name\n  });\n}\n\nconsole.log(`Extracted ${records.length} shipment records`);\n\nreturn records.map(record => ({ json: record }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5856,
+        1776
+      ],
+      "id": "5d9ee071-609a-4995-b2af-7e81709a3d0b",
+      "name": "Shipment"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "Shipments_Table Export",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        4688,
+        2368
+      ],
+      "id": "69388de3-ef30-4afc-9d9e-0cc5be2b3afc",
+      "name": "Get many rows4"
+    },
+    {
+      "parameters": {
+        "options": {
+          "fileName": "=shipment_table_export_{{ $now.format('yyyy-MM-dd') }}.csv"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        5024,
+        2384
+      ],
+      "id": "6a614802-60aa-40eb-b424-d039499af293",
+      "name": "Convert to File4"
+    },
+    {
+      "parameters": {
+        "jsCode": "await new Promise(resolve => setTimeout(resolve, 300));\nconsole.log('---');\nreturn $input.all();"
+      },
+      "id": "346dcd7a-cfb5-4b01-872a-549758b668e1",
+      "name": "Delay4",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6080,
+        1584
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "last_id",
+              "name": "last_id",
+              "value": "={{ $json.last_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "55fa1e38-3f7f-4bfe-b03c-2c8ce1224377",
+      "name": "Update Cursor4",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        5856,
+        1584
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "has-more",
+              "leftValue": "={{ $json.has_more }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "173324a1-3ba0-4b0a-9d5f-b6a0873f0ded",
+      "name": "Has More Pages?4",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        5632,
+        1584
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const currentResponse = $input.item.json;\nconst nextLastId = currentResponse.meta?.pagination?.last_id || null;\n\nconsole.log(`Retrieved ${(currentResponse.response || []).length} POs. Next: ${nextLastId || 'NONE'}`);\n\nreturn {\n  json: {\n    last_id: nextLastId,\n    has_more: !!nextLastId\n  }\n};"
+      },
+      "id": "d197da9c-894e-4ffe-a624-b71ada7ac38a",
+      "name": "Check Pagination4",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5408,
+        1584
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://jackandsage.app.apparelmagic.com/api/json/shipments/?token=xyz&time={{ Math.floor(Date.now() / 1000) }}{{ $json.last_id ? '&pagination[last_id]=' + $json.last_id : '' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "8d56c679-c4ef-4c82-aab2-8d3052b1dc35",
+      "name": "HTTP - Fetch Page4",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5184,
+        1744
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "page_count",
+              "name": "page_count",
+              "value": "=0",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ff8373de-9a45-4c53-bd27-ea90e796b577",
+      "name": "Initialize Variables4",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        4960,
+        1744
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        5280,
+        1136
+      ],
+      "id": "8f4be913-36e3-4528-8ee2-f2d38d754566",
+      "name": "Loop Over Items4"
+    },
+    {
+      "parameters": {
+        "tableId": "Shipments_Table_Export",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Shipment ID",
+              "fieldValue": "={{ $json.shipment_id }}"
+            },
+            {
+              "fieldId": "Invoice ID",
+              "fieldValue": "={{ $json.invoice_id }}"
+            },
+            {
+              "fieldId": "Date",
+              "fieldValue": "={{ $json.date }}"
+            },
+            {
+              "fieldId": "Customer",
+              "fieldValue": "={{ $json.ship_to }}"
+            },
+            {
+              "fieldId": "Qty Boxes",
+              "fieldValue": "={{ $json.qty_boxes }}"
+            },
+            {
+              "fieldId": "Qty",
+              "fieldValue": "={{ $json.qty }}"
+            },
+            {
+              "fieldId": "Weight",
+              "fieldValue": "={{ $json.weight }}"
+            },
+            {
+              "fieldId": "Void",
+              "fieldValue": "0"
+            },
+            {
+              "fieldId": "Order ID",
+              "fieldValue": "={{ $json.order_id }}"
+            },
+            {
+              "fieldId": "Due Date",
+              "fieldValue": "null"
+            },
+            {
+              "fieldId": "Creation User",
+              "fieldValue": "={{ $json.creation_user }}"
+            },
+            {
+              "fieldId": "Tracking Number",
+              "fieldValue": "={{ $json.tracking_number }}"
+            },
+            {
+              "fieldId": "Warehouse",
+              "fieldValue": "null"
+            },
+            {
+              "fieldId": "Creation Date",
+              "fieldValue": "={{ $json.creation_date }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        6080,
+        1792
+      ],
+      "id": "3e25b8b7-3f38-4d18-bc2f-1807444a3e31",
+      "name": "Create a row4"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "Shipments_Table_Export",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        5056,
+        1136
+      ],
+      "id": "08ad7021-7e50-4f3b-a9e9-7116a943fce2",
+      "name": "Get many rows5"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "Shipments_Table_Export",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "Shipment ID",
+              "condition": "fullText",
+              "searchFunction": "fts",
+              "keyValue": "={{ $json[\"Shipment ID\"] }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        6080,
+        1152
+      ],
+      "id": "370e9801-a71e-4be2-9b45-d1362cd93357",
+      "name": "Delete a row4"
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        5680,
+        1152
+      ],
+      "id": "5a57f6f4-6323-4928-9a4f-7c129330d274",
+      "name": "Wait4",
+      "webhookId": "50fba6cd-a6b2-4ba1-ba3c-8e7a748bf1c5"
+    },
+    {
+      "parameters": {
+        "fileName": "=shipment_table_export_{{ $now.format('yyyy-MM-dd') }}.csv",
+        "binaryData": true
+      },
+      "type": "n8n-nodes-base.microsoftOneDrive",
+      "typeVersion": 1,
+      "position": [
+        5232,
+        2384
+      ],
+      "id": "48ba1863-6c46-4d86-b04f-9fca7ad09ae4",
+      "name": "Upload a file4"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 3
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        4208,
+        1504
+      ],
+      "id": "0943b28a-f568-4e46-9584-c4c6ea32f725",
+      "name": "Schedule Trigger4"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        5488,
+        1040
+      ],
+      "id": "16d9b095-41a3-4fda-81b5-114562187cbd",
+      "name": "No Operation, do nothing12"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        6288,
+        1792
+      ],
+      "id": "700a71bf-12fe-4cec-99f5-d4534b1eff30",
+      "name": "No Operation, do nothing13"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        5440,
+        2384
+      ],
+      "id": "fd265e78-f676-4cd2-9d2f-13fcb4892c9d",
+      "name": "No Operation, do nothing14"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Delay": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Fetch Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Cursor": {
+      "main": [
+        [
+          {
+            "node": "Delay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has More Pages?": {
+      "main": [
+        [
+          {
+            "node": "Update Cursor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Purchase Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Pagination": {
+      "main": [
+        [
+          {
+            "node": "Has More Pages?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Fetch Page": {
+      "main": [
+        [
+          {
+            "node": "Check Pagination",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Purchase Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize Variables": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Fetch Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get many rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Initialize Variables",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "GetAllPOData",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get many rows2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Initialize Variables2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "GetAllRecieversData",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get many rows1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Initialize Variables1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "GetAllPOData1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get many rows3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Initialize Variables3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "GetAllSalesOrderData",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get many rows5",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Initialize Variables4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get many rows4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Purchase Order": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete a row": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetAllPOData": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Delete a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Upload a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload a file": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Initialize Variables",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "GetAllPOData",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delay1": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Fetch Page1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Cursor1": {
+      "main": [
+        [
+          {
+            "node": "Delay1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has More Pages?1": {
+      "main": [
+        [
+          {
+            "node": "Update Cursor1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Purchase Order1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Pagination1": {
+      "main": [
+        [
+          {
+            "node": "Has More Pages?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Fetch Page1": {
+      "main": [
+        [
+          {
+            "node": "Check Pagination1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Purchase Order1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize Variables1": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Fetch Page1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row1": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Purchase Order1": {
+      "main": [
+        [
+          {
+            "node": "Create a row1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete a row1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetAllPOData1": {
+      "main": [
+        [
+          {
+            "node": "Convert to File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File1": {
+      "main": [
+        [
+          {
+            "node": "Upload a file1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Delete a row1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload a file1": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Initialize Variables1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "GetAllPOData1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get many rows1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetAllRecieversData": {
+      "main": [
+        [
+          {
+            "node": "Convert to File2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receivers": {
+      "main": [
+        [
+          {
+            "node": "Create a row2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delay2": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Fetch Page2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Cursor2": {
+      "main": [
+        [
+          {
+            "node": "Delay2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has More Pages?2": {
+      "main": [
+        [
+          {
+            "node": "Update Cursor2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Receivers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Pagination2": {
+      "main": [
+        [
+          {
+            "node": "Has More Pages?2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Fetch Page2": {
+      "main": [
+        [
+          {
+            "node": "Check Pagination2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Receivers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize Variables2": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Fetch Page2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row2": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items2": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing6",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete a row2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File2": {
+      "main": [
+        [
+          {
+            "node": "Upload a file2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait2": {
+      "main": [
+        [
+          {
+            "node": "Delete a row2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger2": {
+      "main": [
+        [
+          {
+            "node": "Get many rows2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Initialize Variables2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "GetAllRecieversData",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload a file2": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetAllSalesOrderData": {
+      "main": [
+        [
+          {
+            "node": "Convert to File3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delay3": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Fetch Page3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Cursor3": {
+      "main": [
+        [
+          {
+            "node": "Delay3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has More Pages?3": {
+      "main": [
+        [
+          {
+            "node": "Update Cursor3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Receivers2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Pagination3": {
+      "main": [
+        [
+          {
+            "node": "Has More Pages?3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Fetch Page3": {
+      "main": [
+        [
+          {
+            "node": "Check Pagination3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Receivers2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize Variables3": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Fetch Page3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receivers2": {
+      "main": [
+        [
+          {
+            "node": "Create a row3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row3": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows3": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items3": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing9",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete a row3": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File3": {
+      "main": [
+        [
+          {
+            "node": "Upload a file3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger3": {
+      "main": [
+        [
+          {
+            "node": "Get many rows3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Initialize Variables3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "GetAllSalesOrderData",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait3": {
+      "main": [
+        [
+          {
+            "node": "Delete a row3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload a file3": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows4": {
+      "main": [
+        [
+          {
+            "node": "Convert to File4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File4": {
+      "main": [
+        [
+          {
+            "node": "Upload a file4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delay4": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Fetch Page4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Cursor4": {
+      "main": [
+        [
+          {
+            "node": "Delay4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has More Pages?4": {
+      "main": [
+        [
+          {
+            "node": "Update Cursor4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Shipment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Pagination4": {
+      "main": [
+        [
+          {
+            "node": "Has More Pages?4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Fetch Page4": {
+      "main": [
+        [
+          {
+            "node": "Check Pagination4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Shipment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initialize Variables4": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Fetch Page4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items4": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing12",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row4": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows5": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete a row4": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait4": {
+      "main": [
+        [
+          {
+            "node": "Delete a row4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload a file4": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing14",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger4": {
+      "main": [
+        [
+          {
+            "node": "Get many rows5",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Initialize Variables4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get many rows4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "71047bdc-bd66-4ae8-bee6-1e091a871409",
+  "meta": {
+    "instanceId": "20cf75cd0417fe5be3c3d8dcf7163bcd4dd5f0947193527bf3d55f850ac76577"
+  },
+  "id": "YUsUXpM0kf4wGA9JBuK5e",
+  "tags": []
+}
